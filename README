@@ -1,0 +1,58 @@
+ *
+ * Author: Divij Vaidya
+ * Contact: divijvaidya13@gmail.com
+ * Date: 24-July-2011
+ *
+
+
+*******Project Files:*******
+
+1. main.cpp
+2. definition.h
+3. errorhandle.h
+4. matrixkernel1.cl
+5. reshuffle.cl
+6. makefile
+
+
+1. main.cpp
+This file contains the code where openCL is initialised, FFT is calculated, reshuffling is done and finally matrix multiplication is done.
+
+2. definition.h
+This file contains all the header files required for the code. It also has the function definition for the functions responsible for creating and generating matrices.
+
+3. errorhandle.h
+This file contains the OPENCL error codes used for debugging purpose. Also contains the function definition of OPENCL_V_THROW();
+
+4. matrixkernel1.cl
+This is the openCL kernel responsible for matrix multiplication of the form AA'
+
+5. reshuffle.cl
+This kernel is responsible for converting the complex FFT performed by the APPML-FFT library to a real FFT.
+
+******Pre-requisites*****
+
+1. AMD-APP-SDK
+2. APPML-FFT
+3. GCC
+4. Intel MKL (for timing)
+
+******HOW TO RUN********
+(All quotes below are for clarity only)
+
+1. Modify the makefile to change the path of AMD-APP-SDK and APPML-FFT
+2. (Only at CITA) Type "source setup" to load the module files into your environment.
+3. Modify the parameters in the macros of main.cpp. NO_INPUTS is the number of input streams MEM_SIZE is the initial sample size
+4. Type "make" to compile the project. It creates an executable by the name "main".
+5. Execute the "main" file.
+***********************
+
+********What does the code do?*********
+1. Takes input a matrix of size NO_INPUTSxMEM_SIZE
+2. Calculates FFT assuming consecutive(row order) numbers to be real and imaginary part of a "complex" matrix of size NO_INPUTSx(MEM_SIZE/2)
+3. Reshuffles the output on GPU from FFT to get a matrix having real to complex FFT. We take only half of this matrix as it is symmetric. Now, we have a matrix of size NO_INPUTSxMEM_SIZE
+4. We break the matrix into separate channels, with each channel having dimension NO_INPUTS x NO_SAMPLES_PER_CHANNEL
+5. Thus, the new matrix has dimension (NO_INPUTS*CHANNELNO)x(NO_SAMPLES_PER_CHANNEL)
+6. This matrix has data in the form RIRIRIRI... so we again reshuffle(on CPU) it to have data in the form of RRRRR...;IIIII;RRR... So, after doing this reshuffling we have the matrix of the form (NO_INPUTS*CHANNELNO)*2)x(NO_SAMPLES_PER_CHANNEL/2)
+7. We multiply this matrix with its transpose on the GPU keeping in mind that the answer is symmetric.
+8. As answer, we get a matrix of size (CHANNELNO*NO_INPUTS)x(NO_INPUTS*2)
